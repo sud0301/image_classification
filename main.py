@@ -28,12 +28,12 @@ def convert2one_hot(index_labels):
 '''
 cifar10 = read_cifar10_dataset(folder_data)
 
-n_batch = 50
+n_batch = 100
 n_epoch = 200
 folder_data = './data/'
 maybe_download(folder_data)
 imagesize = 32
-n_channel=3
+n_channel= 3
 
 input_x = tf.placeholder(tf.float32, shape=[None, imagesize, imagesize, n_channel])
 
@@ -49,7 +49,7 @@ y_pred_cls = tf.argmax(y_pred, dimension=1)
 cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=y_pred, labels=y_true) # try changin logits to y_pred
 cost = tf.reduce_mean(cross_entropy)
 
-optimizer = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(cost)
+optimizer = tf.train.AdamOptimizer(learning_rate=0.0002).minimize(cost)
 
 correct_prediction = tf.equal(y_pred_cls, y_true_cls)
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
@@ -62,7 +62,7 @@ for epoch in range(n_epoch):
     for idx in range(0, 50000, n_batch):
         x, index_labels = cifar10.train.next_batch(n_batch)
         #one_hot_label = convert2one_hot(index_labels) 
-        feed_dict = {input_x: x, y_true: index_labels, phase_train:True, keep_prob: 0.5}
+        feed_dict = {input_x: x, y_true: index_labels, phase_train:True, keep_prob: 0.75}
         lcnn, _ = session.run([cost, optimizer], feed_dict = feed_dict)
         
     loss_, acc  = session.run([cost, accuracy], feed_dict)

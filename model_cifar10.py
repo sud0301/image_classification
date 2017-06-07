@@ -99,10 +99,10 @@ def flatten_layer(layer):
     # Return both the flattened layer and the number of features.
     return layer_flat, num_features
 
-def new_fc_layer(input,          # The previous layer.
+def new_fc_layer(phase_train,
+                 input,          # The previous layer.
                  num_inputs,     # Num. inputs from prev. layer.
                  num_outputs,    # Num. outputs.
-                 phase_train= True,
                  use_relu=True): # Use Rectified Linear Unit (ReLU)?
 
     # Create new weights and biases.
@@ -119,8 +119,8 @@ def new_fc_layer(input,          # The previous layer.
 
     return layer
 
-def dropout_layer(input, keep_prob):
-    layer = tf.nn.dropout(input, keep_prob)
+def dropout_layer(layer, keep_prob):
+    layer = tf.nn.dropout(layer, keep_prob)
     return layer
 
 # Try adding dropout later
@@ -145,25 +145,33 @@ num_filters13=512
 fc_size = 512
 
 
-def load_model(x_image, phase_train, keep_prob):
+def load_model(x_image, keep_prob, phase_train):
     layer_conv1, weights_conv1  =       new_conv_layer(phase_train, input=x_image,        num_input_channels=num_channels,   filter_size=filter_size, num_filters=num_filters1,    use_pooling=False,    use_batch_norm= True)
+    layer_conv1 = dropout_layer(layer_conv1, keep_prob)
     layer_conv2, weights_conv2  =       new_conv_layer(phase_train, input=layer_conv1,    num_input_channels=num_filters1,   filter_size=filter_size, num_filters=num_filters2,    use_pooling=True,     use_batch_norm = True)
     layer_conv3, weights_conv3  =       new_conv_layer(phase_train, input=layer_conv2,    num_input_channels=num_filters2,   filter_size=filter_size, num_filters=num_filters3,    use_pooling=False,    use_batch_norm = True)
+    layer_conv3 = dropout_layer(layer_conv3, keep_prob)
     layer_conv4, weights_conv4  =       new_conv_layer(phase_train, input=layer_conv3,    num_input_channels=num_filters3,   filter_size=filter_size, num_filters=num_filters4,    use_pooling=True,     use_batch_norm = True)
     layer_conv5, weights_conv5  =       new_conv_layer(phase_train, input=layer_conv4,    num_input_channels=num_filters4,   filter_size=filter_size, num_filters=num_filters5,    use_pooling=False,    use_batch_norm = True)
+    layer_conv5 = dropout_layer(layer_conv5, keep_prob)
     layer_conv6, weights_conv6  =       new_conv_layer(phase_train, input=layer_conv5,    num_input_channels=num_filters5,   filter_size=filter_size, num_filters=num_filters6,    use_pooling=False,     use_batch_norm = True)
+    layer_conv6 = dropout_layer(layer_conv6, keep_prob)
     layer_conv7, weights_conv7  =       new_conv_layer(phase_train, input=layer_conv6,    num_input_channels=num_filters6,   filter_size=filter_size, num_filters=num_filters7,    use_pooling=True,     use_batch_norm = True)
     layer_conv8, weights_conv8  =       new_conv_layer(phase_train, input=layer_conv7,    num_input_channels=num_filters7,   filter_size=filter_size, num_filters=num_filters8,    use_pooling=False,     use_batch_norm = True)
+    layer_conv8 = dropout_layer(layer_conv8, keep_prob)
     layer_conv9, weights_conv9   =      new_conv_layer(phase_train, input=layer_conv8,    num_input_channels=num_filters8,   filter_size=filter_size, num_filters=num_filters9,    use_pooling=False,     use_batch_norm = True)
+    layer_conv9 = dropout_layer(layer_conv9, keep_prob)
     layer_conv10, weights_conv10 =      new_conv_layer(phase_train, input=layer_conv9,    num_input_channels=num_filters9,   filter_size=filter_size, num_filters=num_filters10,   use_pooling=True,     use_batch_norm = True)
     layer_conv11, weights_conv11 =      new_conv_layer(phase_train, input=layer_conv10,   num_input_channels=num_filters10,  filter_size=filter_size, num_filters=num_filters11,   use_pooling=False,     use_batch_norm = True)
+    layer_conv11 = dropout_layer(layer_conv11, keep_prob)
     layer_conv12, weights_conv12 =      new_conv_layer(phase_train, input=layer_conv11,   num_input_channels=num_filters11,  filter_size=filter_size, num_filters=num_filters12,   use_pooling=False,     use_batch_norm = True)
+    layer_conv12 = dropout_layer(layer_conv12, keep_prob)
     layer_conv13, weights_conv13 =      new_conv_layer(phase_train, input=layer_conv12,   num_input_channels=num_filters12,  filter_size=filter_size, num_filters=num_filters13,   use_pooling=True,     use_batch_norm = True)
     layer_flat, num_features = flatten_layer(layer_conv13)
-    #layer_flat = dropout_layer(layer_flat, keep_prob)
-    layer_fc1 = new_fc_layer(input=layer_flat,  num_inputs=num_features, num_outputs=fc_size, phase_train=True, use_relu=True)       
-    #layer_fc1  = dropout_layer(layer_fc1, keep_prob) 
-    layer_fc2 = new_fc_layer(input=layer_fc1,  num_inputs=fc_size, num_outputs=num_classes, phase_train=True, use_relu=True)
+    layer_flat = dropout_layer(layer_flat, keep_prob)
+    layer_fc1 = new_fc_layer(phase_train, input=layer_flat,  num_inputs=num_features, num_outputs=fc_size, use_relu=True)       
+    layer_fc1  = dropout_layer(layer_fc1, keep_prob) 
+    layer_fc2 = new_fc_layer(phase_train, input=layer_fc1,  num_inputs=fc_size, num_outputs=num_classes, use_relu=True)
     y_pred = tf.nn.softmax(layer_fc2)       
     
     return y_pred
