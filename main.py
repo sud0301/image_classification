@@ -6,27 +6,10 @@ import numpy as np
 import random
 import math
 
-from aae_helpers import *
-from data_utils import * 
+from data_utils import *
 from model_cifar10 import *
 
 folder_data = './data/cifar-10-batches-py'
-
-def print_progress(epoch, feed_dict_train, feed_dict_validate, val_loss):
-    # Calculate the accuracy on the training-set.
-    acc = session.run(accuracy, feed_dict=feed_dict_train)
-    val_acc = session.run(accuracy, feed_dict=feed_dict_validate)
-    msg = "Epoch {0} --- Training Accuracy: {1:>6.1%}, Validation Accuracy: {2:>6.1%}, Validation Loss: {3:.3f}"
-    print(msg.format(epoch + 1, acc, val_acc, val_loss))
-'''
-def convert2one_hot(index_labels):
-    one_hot_label = np.zeros((len(index_labels), 10))
-    for idx, i in enumerate(index_labels):  
-        print (idx, i)
-        one_hot_label[idx, i] = 1.0
-    return one_hot_label
-'''
-cifar10 = read_cifar10_dataset(folder_data)
 
 n_batch = 100
 n_epoch = 200
@@ -35,43 +18,61 @@ maybe_download(folder_data)
 imagesize = 32
 n_channel= 3
 
+cifar10 = read_cifar10_dataset(folder_data)
+
+'''
+Placeholders
+Placeholder variables serve as the input to the TensorFlow computational graph that we may change each time we execute the graph.
+'''
+
+# This is the placeholder for the input images. The convolutional layers expect the input_x tensor to be 4-dim tensor [num_image, image_height, image_width, num_channel]
 input_x = tf.placeholder(tf.float32, shape=[None, imagesize, imagesize, n_channel])
 
+# This is the placeholder variable for the true labels. The shape of this variable is [num_image, num_classes]. It expects a one-hot vector. 
 y_true = tf.placeholder(tf.float32, shape=[None, num_classes], name='y_true')
+# This calculates the class index
 y_true_cls = tf.argmax(y_true, dimension=1)
 
+# This is the placeholder for the learning mode. [Training  or Testing]
 phase_train = tf.placeholder(tf.bool, name = 'phase_train')
+
+# This is the placeholder for the keep probability for Dropout layer.
 keep_prob = tf.placeholder(tf.float32, name = 'keep_prob')
 
+#  This variable loads the output from the Convolutional Network. 
 y_pred =  load_model(input_x, keep_prob, phase_train)
 y_pred_cls = tf.argmax(y_pred, dimension=1)
 
 cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=y_pred, labels=y_true) # try changin logits to y_pred
 cost = tf.reduce_mean(cross_entropy)
 
+#Since we have the cost measure, we want to minimize the cost. In this case we use AdamOptimizer, which is a advanced version of Gradient Descent. 
 optimizer = tf.train.AdamOptimizer(learning_rate=0.0002).minimize(cost)
 
 correct_prediction = tf.equal(y_pred_cls, y_true_cls)
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
+#Once the tensorflow graph has been created, we have create a session to execute the graph
 session = tf.Session()
+# Now the variables including weights and biases are initialized.
 session.run(tf.global_variables_initializer())
 
 for epoch in range(n_epoch):
     summ = 0
     for idx in range(0, 50000, n_batch):
         x, index_labels = cifar10.train.next_batch(n_batch)
-        #one_hot_label = convert2one_hot(index_labels) 
-        feed_dict = {input_x: x, y_true: index_labels, phase_train:True, keep_prob: 0.75}
-        lcnn, _ = session.run([cost, optimizer], feed_dict = feed_dict)
+        # Now the input batch is put into a dict with names of the placeholder variables in the tensorflow graph.
+        feed_dict_train = {input_x: x, y_true: index_labels, phase_train:True, keep_prob: 0.75}
+        # Run the optimizer. Tensorflow assigns variables in feed_dict to the placeholder varaibles. 
+        lcnn, _ = session.run([cost, optimizer], feed_dict = feed_dict_train)
         
-    loss_, acc  = session.run([cost, accuracy], feed_dict)
+    loss_, acc  = session.run([cost, accuracy], feed_dict_train)
     print ("Epoch: " + str(epoch) + ",Minibatch Loss= " + "{:.6f}".format(loss_) + ",Training Accuracy= " + "{:.5f}".format(acc))
 
     for idx in range(0, 10000, n_batch):
         x, index_labels = cifar10.test.next_batch(n_batch)
-        feed_dict={input_x: x, y_true:index_labels, phase_train:False, keep_prob:1.0} 
-        loss_, acc  = session.run([cost, accuracy], feed_dict)
+        feed_dict_test = {input_x: x, y_true:index_labels, phase_train:False, keep_prob:1.0} 
+        loss_, acc  = session.run([cost, accuracy], feed_dict_test)
         summ = summ + acc
-    summ = summ*n_batch/10000
+    summ = (summ*n_batch)/10000
     print ('Testing Accuracy= ' + '{:.5f}'.format(summ))

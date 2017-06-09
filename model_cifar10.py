@@ -60,7 +60,7 @@ def batch_norm(x, n_out, phase_train):
         beta = tf.Variable(tf.constant(0.0, shape=[n_out]), name='beta', trainable=True)
         gamma = tf.Variable(tf.constant(1.0, shape=[n_out]), name='gamma', trainable=True)
         batch_mean, batch_var = tf.nn.moments(x, [0,1,2], name='moments')
-        '''
+        
         ema = tf.train.ExponentialMovingAverage(decay=0.5)
  
         def mean_var_with_update():
@@ -70,8 +70,8 @@ def batch_norm(x, n_out, phase_train):
                 return tf.identity(batch_mean), tf.identity(batch_var)
  
         mean, var = tf.cond(phase_train, mean_var_with_update, lambda: (ema.average(batch_mean), ema.average(batch_var)))
-        '''
-        normed = tf.nn.batch_norm_with_global_normalization(x, batch_mean, batch_var, beta, gamma, 1e-3, True)
+        
+        normed = tf.nn.batch_norm_with_global_normalization(x, mean, var, beta, gamma, 1e-3, True)
     return normed
 
 
@@ -103,6 +103,7 @@ def new_fc_layer(phase_train,
                  input,          # The previous layer.
                  num_inputs,     # Num. inputs from prev. layer.
                  num_outputs,    # Num. outputs.
+                 #use_batch_norm = True,
                  use_relu=True): # Use Rectified Linear Unit (ReLU)?
 
     # Create new weights and biases.
@@ -113,6 +114,9 @@ def new_fc_layer(phase_train,
     # the input and weights, and then add the bias-values.
     layer = tf.matmul(input, weights) + biases
 
+    #if use_batch_norm:
+    #    layer =  batch_norm(layer, num_outputs, phase_train )
+    
     # Use ReLU?
     if use_relu:
         layer = tf.nn.relu(layer)
@@ -166,8 +170,8 @@ def load_model(x_image, keep_prob, phase_train):
     layer_conv11 = dropout_layer(layer_conv11, keep_prob)
     layer_conv12, weights_conv12 =      new_conv_layer(phase_train, input=layer_conv11,   num_input_channels=num_filters11,  filter_size=filter_size, num_filters=num_filters12,   use_pooling=False,     use_batch_norm = True)
     layer_conv12 = dropout_layer(layer_conv12, keep_prob)
-    layer_conv13, weights_conv13 =      new_conv_layer(phase_train, input=layer_conv12,   num_input_channels=num_filters12,  filter_size=filter_size, num_filters=num_filters13,   use_pooling=True,     use_batch_norm = True)
-    layer_flat, num_features = flatten_layer(layer_conv13)
+    #layer_conv13, weights_conv13 =      new_conv_layer(phase_train, input=layer_conv12,   num_input_channels=num_filters12,  filter_size=filter_size, num_filters=num_filters13,   use_pooling=True,     use_batch_norm = True)
+    layer_flat, num_features = flatten_layer(layer_conv12)
     layer_flat = dropout_layer(layer_flat, keep_prob)
     layer_fc1 = new_fc_layer(phase_train, input=layer_flat,  num_inputs=num_features, num_outputs=fc_size, use_relu=True)       
     layer_fc1  = dropout_layer(layer_fc1, keep_prob) 
