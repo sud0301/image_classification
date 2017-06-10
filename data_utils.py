@@ -3,7 +3,6 @@ from __future__ import division
 from __future__ import print_function
 
 import matplotlib.pyplot as plt
-#from data_utils import load_CIFAR10
 import collections
 
 import pickle
